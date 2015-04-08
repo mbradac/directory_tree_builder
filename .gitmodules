@@ -1,0 +1,3 @@
+[submodule "spreadsheet_parser"]
+	path = spreadsheet_parser
+	url = git@github.com:mbradac/spreadsheet_parser.git
