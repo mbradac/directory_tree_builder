@@ -1,13 +1,17 @@
+from __future__ import print_function
 import os
+import sys
 import unicodedata
 import _settings
 from spreadsheet_parser import data_manager
+from PyPDF2 import PdfFileWriter, PdfFileReader
 
 def _makedirs(path):
     try:
-        os.makedirs(_settings.TMP)
+        os.makedirs(path)
     except OSError:
-        assert os.path.isdir(_settings.TMP)
+        if not os.path.isdir(path):
+            raise
 
 class DirectoryManager(object):
     def __init__(self, root):
@@ -22,8 +26,14 @@ class DirectoryManager(object):
     def build_from_spreadsheet(self):
         contests = self.__data_manager.get_contests(False)
         tasks = self.__data_manager.get_tasks(False)
+        _makedirs(self.__tmp_dir)
         for task in tasks:
-            print self.task_path(task)
+            path = self.task_path(task)
+            try:
+                _makedirs(path)
+                self.__save_task_pdf(task)
+            except:
+                print("Failed to download task: " + task.key(), file=sys.stderr)
 
     def task_path(self, task):
         contest = self.__data_manager.contest_of_task(task)
@@ -31,7 +41,24 @@ class DirectoryManager(object):
         task_folder = ('%02d' % (num + 1)) + '-' + unicodedata.normalize(
                 'NFD', task.name).encode('ascii', 'ignore')
         return os.path.join(self.contest_path(contest), task_folder)
+    
+    def task_pdf_path(self, task):
+        return os.path.join(self.task_path(task), 
+                task.normalized_name() + '.pdf')
 
     def contest_path(self, contest):
         return os.path.join(self.__tasks_dir, contest.short_name,
                 str(contest.year), contest.round)
+
+    def __save_task_pdf(self, task):
+        tmp_pdf_path = os.path.join(self.__tmp_dir, 
+                task.key() + '.pdf')
+        task.download_text_pdf(tmp_pdf_path)
+
+        with open(tmp_pdf_path, 'rb') as input_stream:
+            input_pdf = PdfFileReader(input_stream)
+            output_pdf = PdfFileWriter()
+            for page in task.pages:
+                output_pdf.addPage(input_pdf.getPage(page-1))
+            with open(self.task_pdf_path(task), 'wb') as output_stream:
+                output_pdf.write(output_stream)
