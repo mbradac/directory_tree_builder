@@ -32,6 +32,7 @@ class DirectoryManager(object):
             try:
                 _makedirs(path)
                 self.__save_task_pdf(task)
+                self.__save_task_tests(task)
             except:
                 print("Failed to download task: " + task.key(), file=sys.stderr)
 
@@ -85,3 +86,18 @@ class DirectoryManager(object):
                     output_pdf.write(output_stream)
         finally:
             os.remove(tmp_pdf_path)
+
+    def __save_task_tests(self, task):
+        try:
+            tmp_zip_path = os.path.join(self.__tmp_dir, task.key() + '.zip')
+            task.download_tests_zip(tmp_zip_path)
+            with zipfile.ZipFile(tmp_zip_path) as zfile:
+                num_matches = 0
+                for name in zfile.namelist():
+                    if fnmatch.fnmatch(name, os.path.normpath(task.tests_in_path)):
+                        num_matches += 1
+                        zfile.extract(name, self.task_path(task))
+                if num_matches != task.tests_num_io:
+                    raise Exception('Wrong number of test cases.')
+        finally:
+            os.remove(tmp_zip_path)
