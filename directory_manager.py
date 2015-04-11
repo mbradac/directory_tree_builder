@@ -1,10 +1,10 @@
 from __future__ import print_function
-import os
-import sys
+import os, sys, fnmatch
 import unicodedata
 import _settings
 from spreadsheet_parser import data_manager
 from PyPDF2 import PdfFileWriter, PdfFileReader
+import zipfile
 
 def _makedirs(path):
     try:
@@ -52,9 +52,28 @@ class DirectoryManager(object):
 
     def __save_task_pdf(self, task):
         try:
-            tmp_pdf_path = os.path.join(self.__tmp_dir, 
-                    task.key() + '.pdf')
+            extension = '.pdf'
+            sep = task.text_pdf_url.find('#')
+            if sep != -1:
+                extension = '.zip'
+
+            tmp_pdf_path = os.path.join(self.__tmp_dir, task.key() + extension)
             task.download_text_pdf(tmp_pdf_path)
+
+            if sep != -1:
+                in_zip_path = task.text_pdf_url[sep+1:]
+                with zipfile.ZipFile(tmp_pdf_path) as zfile:
+                    matches = []
+                    for name in zfile.namelist():
+                        if fnmatch.fnmatch(name, in_zip_path):
+                            matches.append(name)
+                    if len(matches) != 1:
+                        print(in_zip_path)
+                        raise Exception('Wrong number of matches')
+                    zfile.extract(matches[0], self.__tmp_dir)
+                os.remove(tmp_pdf_path)
+                tmp_pdf_path = os.path.join(self.__tmp_dir, matches[0])
+
             with open(tmp_pdf_path, 'rb') as input_stream:
                 input_pdf = PdfFileReader(input_stream)
                 if input_pdf.isEncrypted:
