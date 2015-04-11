@@ -51,14 +51,18 @@ class DirectoryManager(object):
                 str(contest.year), contest.round)
 
     def __save_task_pdf(self, task):
-        tmp_pdf_path = os.path.join(self.__tmp_dir, 
-                task.key() + '.pdf')
-        task.download_text_pdf(tmp_pdf_path)
-
-        with open(tmp_pdf_path, 'rb') as input_stream:
-            input_pdf = PdfFileReader(input_stream)
-            output_pdf = PdfFileWriter()
-            for page in task.pages:
-                output_pdf.addPage(input_pdf.getPage(page-1))
-            with open(self.task_pdf_path(task), 'wb') as output_stream:
-                output_pdf.write(output_stream)
+        try:
+            tmp_pdf_path = os.path.join(self.__tmp_dir, 
+                    task.key() + '.pdf')
+            task.download_text_pdf(tmp_pdf_path)
+            with open(tmp_pdf_path, 'rb') as input_stream:
+                input_pdf = PdfFileReader(input_stream)
+                if input_pdf.isEncrypted:
+                    input_pdf.decrypt('')
+                output_pdf = PdfFileWriter()
+                for page in task.pages:
+                    output_pdf.addPage(input_pdf.getPage(page-1))
+                with open(self.task_pdf_path(task), 'wb') as output_stream:
+                    output_pdf.write(output_stream)
+        finally:
+            os.remove(tmp_pdf_path)
