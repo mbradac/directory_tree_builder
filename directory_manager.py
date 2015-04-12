@@ -23,7 +23,7 @@ class DirectoryManager(object):
         self.__checkers_dir = os.path.join(root, _settings.CHECKERS)
         self.__data_manager = data_manager.DataManager()
 
-    def build_from_spreadsheet(self):
+    def build_from_spreadsheet(self, build_pdfs=True, build_tests=True):
         contests = self.__data_manager.get_contests(False)
         tasks = self.__data_manager.get_tasks(False)
         _makedirs(self.__tmp_dir)
@@ -31,8 +31,10 @@ class DirectoryManager(object):
             path = self.task_path(task)
             try:
                 _makedirs(path)
-                self.__save_task_pdf(task)
-                self.__save_task_tests(task)
+                if build_pdfs: 
+                    self.__save_task_pdf(task)
+                if build_tests:
+                    self.__save_task_tests(task)
             except:
                 print("Failed to download task: " + task.key(), file=sys.stderr)
 
