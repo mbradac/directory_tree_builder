@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os, sys, fnmatch
+import shutil
 import unicodedata
 import _settings
 from spreadsheet_parser import data_manager
@@ -12,6 +13,11 @@ def _makedirs(path):
     except OSError:
         if not os.path.isdir(path):
             raise
+
+def _extract_as(zfile, name_in_zip, destination_path):
+    with zfile.open(name_in_zip) as source_stream:
+        with open(destination_path, 'wb') as destination_stream:
+            shutil.copyfileobj(source_stream, destination_stream)
 
 class DirectoryManager(object):
     def __init__(self, root):
@@ -93,12 +99,22 @@ class DirectoryManager(object):
         try:
             tmp_zip_path = os.path.join(self.__tmp_dir, task.key() + '.zip')
             task.download_tests_zip(tmp_zip_path)
+            _, pat, rep, _ = task.tests_in_to_out.split('/')
+            
             with zipfile.ZipFile(tmp_zip_path) as zfile:
                 num_matches = 0
                 for name in zfile.namelist():
                     if fnmatch.fnmatch(name, os.path.normpath(task.tests_in_path)):
+                        filename = os.path.basename(name)
+                        dirname = os.path.dirname(name)
+                        if not filename:
+                            continue
+                        _extract_as(zfile, name, os.path.join(
+                            self.task_path(task), filename))
+                        filename = filename.replace(pat, rep)
+                        _extract_as(zfile, os.path.join(dirname, filename), 
+                            os.path.join(self.task_path(task), filename))
                         num_matches += 1
-                        zfile.extract(name, self.task_path(task))
                 if num_matches != task.tests_num_io:
                     raise Exception('Wrong number of test cases.')
         finally:
