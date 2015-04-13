@@ -100,6 +100,7 @@ class DirectoryManager(object):
             tmp_zip_path = os.path.join(self.__tmp_dir, task.key() + '.zip')
             task.download_tests_zip(tmp_zip_path)
             _, pat, rep, _ = task.tests_in_to_out.split('/')
+            normalize = True if pat != _settings.NORMAL_IN_PATTERN else False
             
             with zipfile.ZipFile(tmp_zip_path) as zfile:
                 num_matches = 0
@@ -107,13 +108,22 @@ class DirectoryManager(object):
                     if fnmatch.fnmatch(name, os.path.normpath(task.tests_in_path)):
                         filename = os.path.basename(name)
                         dirname = os.path.dirname(name)
-                        if not filename:
-                            continue
+
+                        if normalize:
+                            normalized_in_filename = (task.normalized_name() +
+                                _settings.NORMAL_IN_PATTERN + str(num_matches+1))
+                        else:
+                            normalized_in_filename = filename
                         _extract_as(zfile, name, os.path.join(
-                            self.task_path(task), filename))
+                            self.task_path(task), normalized_in_filename))
+
                         filename = filename.replace(pat, rep)
-                        _extract_as(zfile, os.path.join(dirname, filename), 
-                            os.path.join(self.task_path(task), filename))
+                        normalized_out_filename = (task.normalized_name() +
+                            _settings.NORMAL_OUT_REPLACEMENT +
+                            str(num_matches+1))
+                        _extract_as(zfile, os.path.join(dirname, filename),
+                            os.path.join(self.task_path(task),
+                            normalized_out_filename))
                         num_matches += 1
                 if num_matches != task.tests_num_io:
                     raise Exception('Wrong number of test cases.')
