@@ -70,18 +70,7 @@ class DirectoryManager(object):
             task.download_text_pdf(tmp_pdf_path)
 
             if sep != -1:
-                in_zip_path = task.text_pdf_url[sep+1:]
-                with zipfile.ZipFile(tmp_pdf_path) as zfile:
-                    matches = []
-                    for name in zfile.namelist():
-                        if fnmatch.fnmatch(name, in_zip_path):
-                            matches.append(name)
-                    if len(matches) != 1:
-                        print(in_zip_path)
-                        raise Exception('Wrong number of matches')
-                    zfile.extract(matches[0], self.__tmp_dir)
-                os.remove(tmp_pdf_path)
-                tmp_pdf_path = os.path.join(self.__tmp_dir, matches[0])
+                tmp_pdf_path = self.__pdf_from_zip(task, tmp_pdf_path, sep)
 
             with open(tmp_pdf_path, 'rb') as input_stream:
                 input_pdf = PdfFileReader(input_stream)
@@ -95,6 +84,19 @@ class DirectoryManager(object):
         finally:
             os.remove(tmp_pdf_path)
 
+    def __pdf_from_zip(self, task, tmp_pdf_path, sep):
+        in_zip_path = task.text_pdf_url[sep+1:]
+        with zipfile.ZipFile(tmp_pdf_path) as zfile:
+            matches = []
+            for name in zfile.namelist():
+                if fnmatch.fnmatch(name, in_zip_path):
+                    matches.append(name)
+            if len(matches) != 1:
+                raise Exception('Wrong number of matches in zip')
+            zfile.extract(matches[0], self.__tmp_dir)
+        os.remove(tmp_pdf_path)
+        return os.path.join(self.__tmp_dir, matches[0])
+
     def __save_task_tests(self, task):
         try:
             tmp_zip_path = os.path.join(self.__tmp_dir, task.key() + '.zip')
@@ -106,26 +108,31 @@ class DirectoryManager(object):
                 num_matches = 0
                 for name in zfile.namelist():
                     if fnmatch.fnmatch(name, os.path.normpath(task.tests_in_path)):
-                        filename = os.path.basename(name)
-                        dirname = os.path.dirname(name)
-
-                        if normalize:
-                            normalized_in_filename = (task.normalized_name() +
-                                _settings.NORMAL_IN_PATTERN + str(num_matches+1))
-                        else:
-                            normalized_in_filename = filename
-                        _extract_as(zfile, name, os.path.join(
-                            self.task_path(task), normalized_in_filename))
-
-                        filename = filename.replace(pat, rep)
-                        normalized_out_filename = (task.normalized_name() +
-                            _settings.NORMAL_OUT_REPLACEMENT +
-                            str(num_matches+1))
-                        _extract_as(zfile, os.path.join(dirname, filename),
-                            os.path.join(self.task_path(task),
-                            normalized_out_filename))
+                        self.__extract_test(task, zfile, name, 
+                                normalize, pat, rep, num_matches)
                         num_matches += 1
                 if num_matches != task.tests_num_io:
                     raise Exception('Wrong number of test cases.')
         finally:
             os.remove(tmp_zip_path)
+
+    def __extract_test(self, task, zfile, name, 
+            normalize, pat, rep, num_matches):
+        filename = os.path.basename(name)
+        dirname = os.path.dirname(name)
+
+        if normalize:
+            normalized_in_filename = (task.normalized_name() +
+                _settings.NORMAL_IN_PATTERN + str(num_matches+1))
+        else:
+            normalized_in_filename = filename
+        _extract_as(zfile, name, os.path.join(
+            self.task_path(task), normalized_in_filename))
+
+        filename = filename.replace(pat, rep)
+        normalized_out_filename = (task.normalized_name() +
+            _settings.NORMAL_OUT_REPLACEMENT +
+            str(num_matches+1))
+        _extract_as(zfile, os.path.join(dirname, filename),
+            os.path.join(self.task_path(task),
+            normalized_out_filename))
