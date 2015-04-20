@@ -29,7 +29,7 @@ class DirectoryManager(object):
         self.__checkers_dir = os.path.join(root, _settings.CHECKERS)
         self.__data_manager = data_manager.DataManager()
 
-    def build_from_spreadsheet(self, build_pdfs=True, 
+    def build_from_spreadsheet(self, build_pdfs=True,
             build_tests=True, testing=False):
         contests = self.__data_manager.get_contests(False)
         tasks = self.__data_manager.get_tasks(False)
@@ -38,7 +38,7 @@ class DirectoryManager(object):
             path = self.task_path(task)
             try:
                 _makedirs(path)
-                if build_pdfs: 
+                if build_pdfs:
                     self.__save_task_pdf(task)
                 if build_tests:
                     self.__save_task_tests(task)
@@ -50,12 +50,11 @@ class DirectoryManager(object):
     def task_path(self, task):
         contest = self.__data_manager.contest_of_task(task)
         num = self.__data_manager.tasks_in_contest(contest).index(task)
-        task_folder = ('%02d' % (num + 1)) + '-' + unicodedata.normalize(
-                'NFD', task.name).encode('ascii', 'ignore')
+        task_folder = ('%02d' % (num + 1)) + '-' + task.normalized_name()
         return os.path.join(self.contest_path(contest), task_folder)
-    
+
     def task_pdf_path(self, task):
-        return os.path.join(self.task_path(task), 
+        return os.path.join(self.task_path(task),
                 task.normalized_name() + '.pdf')
 
     def contest_path(self, contest):
@@ -106,12 +105,12 @@ class DirectoryManager(object):
             task.download_tests_zip(tmp_zip_path)
             _, pat, rep, _ = task.tests_in_to_out.split('/')
             normalize = True if pat != _settings.NORMAL_IN_PATTERN else False
-            
+
             with zipfile.ZipFile(tmp_zip_path) as zfile:
                 num_matches = 0
                 for name in zfile.namelist():
                     if fnmatch.fnmatch(name, os.path.normpath(task.tests_in_path)):
-                        self.__extract_test(task, zfile, name, 
+                        self.__extract_test(task, zfile, name,
                                 normalize, pat, rep, num_matches)
                         num_matches += 1
                 if num_matches != task.tests_num_io:
@@ -119,7 +118,7 @@ class DirectoryManager(object):
         finally:
             os.remove(tmp_zip_path)
 
-    def __extract_test(self, task, zfile, name, 
+    def __extract_test(self, task, zfile, name,
             normalize, pat, rep, num_matches):
         filename = os.path.basename(name)
         dirname = os.path.dirname(name)
