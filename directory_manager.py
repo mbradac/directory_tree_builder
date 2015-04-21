@@ -132,7 +132,8 @@ class DirectoryManager(object):
             self.task_path(task), normalized_in_filename))
 
         filename = filename.replace(pat, rep)
-        normalized_out_filename = normalized_in_filename.replace(pat, rep)
+        normalized_out_filename = normalized_in_filename.replace(
+                _settings.NORMAL_IN_PATTERN, _settings.NORMAL_OUT_REPLACEMENT)
         _extract_as(zfile, os.path.join(dirname, filename),
             os.path.join(self.task_path(task),
             normalized_out_filename))
