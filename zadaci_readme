@@ -7,10 +7,16 @@ virtualenv -p python2 venv
 source venv/bin/activate
 pip install -r REQUIREMENTS
 
-Napraviti datoteku spreadsheet_parser/_hidden_setting.py (ona je gitignorana) i u nju upisati string varijable: CONTEST_ID, CONTEST_GID, TASKS_ID, TASKS_GID, VALUES_ID, VALUES_GID.
+Napraviti datoteku spreadsheet_parser/_hidden_setting.py (ona je gitignorana) i
+u nju upisati string varijable: CONTEST_ID, CONTEST_GID, TASKS_ID, TASKS_GID,
+VALUES_ID, VALUES_GID.
 
-Skidanje zadataka ukljucujuci test primjere i pdfove se onda moze napraviti sljedecom python skriptom. Nisam siguran downloada li skripta checkere koji su upisani u spreadsheet.
+Skidanje zadataka ukljucujuci test primjere i pdfove se onda moze napraviti
+pokretanjem download_all.py skripte:
 
-from directory_manager import DirectoryManager
-manager = DirectoryManager("ime_foldera")
-manager.build_from_spreadsheet()
+python download_all.py "ime_foldera".
+
+Nisam siguran downloada li skripta checkere koji su upisani u spreadsheet. U
+folderu "ime_foldera" ce se stvoriti folder pod imenom tasks u koji ce biti
+downloadani zadaci. Takoder ce biti stvoren folder tmp koji sluzi za skidanje
+zipova prije otpakiravanja.
